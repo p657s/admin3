@@ -1,0 +1,801 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <title>Admin - Control de Operaciones</title>
+
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --border: #334155;
+            --text: #f1f5f9;
+            --muted: #94a3b8;
+            --accent: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+        }
+
+        * { box-sizing: border-box; }
+        html, body {
+            height: 100%;
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-size: 14px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .connection-status {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-connected {
+            background: rgba(16,185,129,0.2);
+            color: #10b981;
+            border: 1px solid rgba(16,185,129,0.3);
+        }
+
+        .pulse {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .stats {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .stat-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 20px;
+            min-width: 140px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--muted);
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .operations-grid {
+            display: grid;
+            gap: 16px;
+            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+        }
+
+        .operation-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .operation-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+        }
+
+        .operation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .side-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .side-buy {
+            background: rgba(16,185,129,0.2);
+            color: #10b981;
+            border: 1px solid rgba(16,185,129,0.3);
+        }
+
+        .side-sell {
+            background: rgba(239,68,68,0.2);
+            color: #ef4444;
+            border: 1px solid rgba(239,68,68,0.3);
+        }
+
+        .pnl-display {
+            font-size: 32px;
+            font-weight: 700;
+            margin: 16px 0;
+        }
+
+        .pnl-profit { color: #10b981; }
+        .pnl-loss { color: #ef4444; }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .info-item {
+            background: rgba(255,255,255,0.03);
+            padding: 12px;
+            border-radius: 8px;
+        }
+
+        .info-label {
+            font-size: 11px;
+            color: var(--muted);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .info-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+        }
+
+        .btn {
+            padding: 12px 16px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        .btn-close {
+            background: var(--danger);
+            color: #fff;
+        }
+
+        .btn-edit {
+            background: var(--warning);
+            color: #fff;
+        }
+
+        .btn-liquidate {
+            background: #7c3aed;
+            color: #fff;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.85);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-content h3 {
+            margin: 0 0 20px 0;
+        }
+
+        .input-group {
+            margin-bottom: 16px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: rgba(255,255,255,0.05);
+            color: var(--text);
+            font-size: 14px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .back-btn {
+            position: fixed;
+            left: 20px;
+            top: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            padding: 12px 20px;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            font-weight: 700;
+            z-index: 999;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            transition: all 0.2s;
+        }
+
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+        }
+
+        .config-section {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+
+        .config-input {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: rgba(255,255,255,0.05);
+            color: var(--text);
+            font-size: 13px;
+            font-family: monospace;
+            margin-bottom: 12px;
+        }
+
+        .save-config-btn {
+            background: var(--accent);
+            color: #fff;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<button class="back-btn" onclick="window.location.href='index.html'">
+    ← Volver a Admin
+</button>
+
+<div class="container">
+    <div class="config-section">
+        <h3>⚙️ Configuración de Firebase (Trading)</h3>
+        <p style="color:var(--muted);font-size:13px;margin:0 0 16px 0;">
+            Configura la conexión a Firebase donde están las operaciones.
+        </p>
+        <input type="text" class="config-input" id="tradingApiKey" placeholder="API Key">
+        <input type="text" class="config-input" id="tradingAuthDomain" placeholder="Auth Domain">
+        <input type="text" class="config-input" id="tradingProjectId" placeholder="Project ID">
+        <input type="text" class="config-input" id="tradingDatabaseURL" placeholder="Database URL">
+        <button class="save-config-btn" onclick="saveTradingConfig()">💾 Guardar Configuración</button>
+    </div>
+
+    <div class="header">
+        <div>
+            <h1>📊 Control de Operaciones</h1>
+            <p style="margin:4px 0 0 0;color:var(--muted);">Administrar Trading en Vivo</p>
+        </div>
+        
+        <div style="display:flex;flex-direction:column;gap:12px;align-items:flex-end;">
+            <div class="connection-status status-connected" id="connectionStatus">
+                <span class="pulse"></span>
+                Conectado
+            </div>
+            
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-label">Operaciones Abiertas</div>
+                    <div class="stat-value" style="color:#10b981" id="statOpen">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">P/L Total</div>
+                    <div class="stat-value" id="statPnL">$0.00</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Margen Usado</div>
+                    <div class="stat-value" style="color:#f59e0b" id="statMargin">$0.00</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="operations-grid" id="operationsGrid">
+        <div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--muted);">
+            🔄 Cargando operaciones...
+        </div>
+    </div>
+</div>
+
+<!-- Modal para editar operación -->
+<div class="modal" id="editModal">
+    <div class="modal-content">
+        <h3>✏️ Editar Operación</h3>
+        
+        <div class="input-group">
+            <label>Usuario ID:</label>
+            <input type="text" id="editUserId" readonly>
+        </div>
+
+        <div class="input-group">
+            <label>Símbolo:</label>
+            <input type="text" id="editSymbol" readonly>
+        </div>
+
+        <div class="input-group">
+            <label>Precio Actual (manipular P/L):</label>
+            <input type="number" id="editCurrentPrice" step="0.000001">
+        </div>
+
+        <div class="input-group">
+            <label>Precio de Entrada:</label>
+            <input type="number" id="editEntryPrice" step="0.000001">
+        </div>
+
+        <div class="input-group">
+            <label>Stop Loss:</label>
+            <input type="number" id="editStopLoss" step="0.000001">
+        </div>
+
+        <div class="input-group">
+            <label>Take Profit:</label>
+            <input type="number" id="editTakeProfit" step="0.000001">
+        </div>
+
+        <div class="input-group">
+            <label>Leverage:</label>
+            <input type="number" id="editLeverage" min="1" max="125">
+        </div>
+
+        <div class="modal-actions">
+            <button class="btn btn-edit" onclick="confirmEdit()" style="flex:1">✅ Guardar</button>
+            <button class="btn" onclick="closeEditModal()" style="flex:1;background:#64748b;color:#fff">❌ Cancelar</button>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+import { getDatabase, ref, onValue, update, remove } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+
+let tradingDb = null;
+let operations = {};
+let currentEditOpId = null;
+let currentEditUserId = null;
+
+// Configuración por defecto (la que está en operaciones.js)
+const DEFAULT_CONFIG = {
+  apiKey: "AIzaSyBNtgRvPSzgeX2SPm6O_YbxbEMFH9ddBbg",
+  authDomain: "ganancias-7e240.firebaseapp.com",
+  databaseURL: "https://ganancias-7e240-default-rtdb.firebaseio.com",
+  projectId: "ganancias-7e240"
+};
+
+function loadTradingConfig() {
+  const saved = localStorage.getItem('tradingFirebaseConfig');
+  if (saved) {
+    const config = JSON.parse(saved);
+    document.getElementById('tradingApiKey').value = config.apiKey || '';
+    document.getElementById('tradingAuthDomain').value = config.authDomain || '';
+    document.getElementById('tradingProjectId').value = config.projectId || '';
+    document.getElementById('tradingDatabaseURL').value = config.databaseURL || '';
+    initTradingFirebase(config);
+  } else {
+    // Usar configuración por defecto
+    initTradingFirebase(DEFAULT_CONFIG);
+    document.getElementById('tradingApiKey').value = DEFAULT_CONFIG.apiKey;
+    document.getElementById('tradingAuthDomain').value = DEFAULT_CONFIG.authDomain;
+    document.getElementById('tradingProjectId').value = DEFAULT_CONFIG.projectId;
+    document.getElementById('tradingDatabaseURL').value = DEFAULT_CONFIG.databaseURL;
+  }
+}
+
+window.saveTradingConfig = function() {
+  const config = {
+    apiKey: document.getElementById('tradingApiKey').value.trim(),
+    authDomain: document.getElementById('tradingAuthDomain').value.trim(),
+    projectId: document.getElementById('tradingProjectId').value.trim(),
+    databaseURL: document.getElementById('tradingDatabaseURL').value.trim()
+  };
+  if (!config.apiKey || !config.databaseURL) {
+    alert('Completa API Key y Database URL');
+    return;
+  }
+  localStorage.setItem('tradingFirebaseConfig', JSON.stringify(config));
+  alert('✅ Guardado. Recargando...');
+  location.reload();
+};
+
+function initTradingFirebase(config) {
+  try {
+    const app = initializeApp(config, 'tradingApp');
+    tradingDb = getDatabase(app);
+    
+    // Escuchar TODAS las operaciones de TODOS los usuarios
+    onValue(ref(tradingDb, 'openOperations'), (snap) => {
+      operations = snap.val() || {};
+      renderOperations();
+      renderStats();
+    });
+    
+    console.log('✅ Trading Firebase conectado');
+  } catch (error) {
+    console.error('Error inicializando Trading Firebase:', error);
+    alert('❌ Error conectando a Firebase. Verifica la configuración.');
+  }
+}
+
+function formatCurrency(amount) {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(amount);
+}
+
+function formatPrice(price) {
+  if (!price || isNaN(price)) return "0.00";
+  const numPrice = Number(price);
+  if (numPrice >= 1000) return numPrice.toFixed(2);
+  if (numPrice >= 1) return numPrice.toFixed(4);
+  if (numPrice >= 0.01) return numPrice.toFixed(6);
+  return numPrice.toFixed(8);
+}
+
+function renderStats() {
+  let totalOpen = 0;
+  let totalPnL = 0;
+  let totalMargin = 0;
+
+  Object.values(operations).forEach(userOps => {
+    if (!userOps) return;
+    Object.values(userOps).forEach(op => {
+      totalOpen++;
+      totalPnL += (op.pnl || 0);
+      totalMargin += (op.amount || 0);
+    });
+  });
+
+  document.getElementById('statOpen').textContent = totalOpen;
+  document.getElementById('statPnL').textContent = formatCurrency(totalPnL);
+  document.getElementById('statPnL').style.color = totalPnL >= 0 ? '#10b981' : '#ef4444';
+  document.getElementById('statMargin').textContent = formatCurrency(totalMargin);
+}
+
+function renderOperations() {
+  const grid = document.getElementById('operationsGrid');
+  
+  const allOps = [];
+  Object.entries(operations).forEach(([userId, userOps]) => {
+    if (!userOps) return;
+    Object.entries(userOps).forEach(([opId, op]) => {
+      allOps.push({ userId, opId, ...op });
+    });
+  });
+
+  if (allOps.length === 0) {
+    grid.innerHTML = `
+      <div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--muted);">
+        📭 No hay operaciones abiertas
+      </div>
+    `;
+    return;
+  }
+
+  // Ordenar por fecha (más recientes primero)
+  allOps.sort((a, b) => (b.openTime || 0) - (a.openTime || 0));
+
+  grid.innerHTML = allOps.map(op => {
+    const pnl = op.pnl || 0;
+    const isProfit = pnl >= 0;
+    const pnlPercent = op.amount ? ((pnl / op.amount) * 100) : 0;
+
+    return `
+      <div class="operation-card">
+        <div class="operation-header">
+          <div>
+            <div style="font-weight:700;font-size:18px;margin-bottom:4px;">${escapeHtml(op.symbol || 'N/A')}</div>
+            <div style="font-size:12px;color:var(--muted);font-family:monospace;">User: ${escapeHtml(op.userId || 'unknown')}</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px;">ID: ${escapeHtml(op.opId || op.id || '—')}</div>
+          </div>
+          <div class="side-badge ${op.side === 'buy' ? 'side-buy' : 'side-sell'}">
+            ${op.side === 'buy' ? '🟢 LONG' : '🔴 SHORT'}
+          </div>
+        </div>
+
+        <div class="pnl-display ${isProfit ? 'pnl-profit' : 'pnl-loss'}">
+          ${formatCurrency(pnl)}
+          <div style="font-size:14px;color:var(--muted);">
+            ${pnlPercent >= 0 ? '+' : ''}${pnlPercent.toFixed(2)}% ROI
+          </div>
+        </div>
+
+        <div class="info-grid">
+          <div class="info-item">
+            <div class="info-label">Entrada</div>
+            <div class="info-value">${formatPrice(op.entryPrice)}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Actual</div>
+            <div class="info-value" style="color:${isProfit ? '#10b981' : '#ef4444'}">${formatPrice(op.currentPrice)}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Margen</div>
+            <div class="info-value">${formatCurrency(op.amount || 0)}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Leverage</div>
+            <div class="info-value">${op.leverage || 1}x</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Posición</div>
+            <div class="info-value">${formatCurrency(op.positionSize || 0)}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Liquidación</div>
+            <div class="info-value" style="color:#ef4444">${formatPrice(op.liquidationPrice)}</div>
+          </div>
+        </div>
+
+        <div style="background:rgba(255,255,255,0.03);padding:10px;border-radius:8px;margin:12px 0;font-size:12px;color:var(--muted);">
+          <div>SL: <strong style="color:#ef4444">${formatPrice(op.stopLoss)}</strong></div>
+          <div>TP: <strong style="color:#10b981">${formatPrice(op.takeProfit)}</strong></div>
+          <div>Fees: <strong>${formatCurrency((op.openFee || 0))}</strong></div>
+        </div>
+
+        <div class="actions">
+          <button class="btn btn-edit" onclick="openEditModal('${escapeHtml(op.userId)}', '${escapeHtml(op.opId || op.id)}')">
+            ✏️ Editar
+          </button>
+          <button class="btn btn-close" onclick="closeOperation('${escapeHtml(op.userId)}', '${escapeHtml(op.opId || op.id)}')">
+            ❌ Cerrar
+          </button>
+          <button class="btn btn-liquidate" onclick="liquidateOperation('${escapeHtml(op.userId)}', '${escapeHtml(op.opId || op.id)}')" style="grid-column:1/-1">
+            💥 Liquidar
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+window.openEditModal = function(userId, opId) {
+  const op = operations[userId]?.[opId];
+  if (!op) {
+    alert('Operación no encontrada');
+    return;
+  }
+
+  currentEditUserId = userId;
+  currentEditOpId = opId;
+
+  document.getElementById('editUserId').value = userId;
+  document.getElementById('editSymbol').value = op.symbol || '';
+  document.getElementById('editCurrentPrice').value = op.currentPrice || op.entryPrice || 0;
+  document.getElementById('editEntryPrice').value = op.entryPrice || 0;
+  document.getElementById('editStopLoss').value = op.stopLoss || 0;
+  document.getElementById('editTakeProfit').value = op.takeProfit || 0;
+  document.getElementById('editLeverage').value = op.leverage || 1;
+
+  document.getElementById('editModal').classList.add('active');
+};
+
+window.closeEditModal = function() {
+  document.getElementById('editModal').classList.remove('active');
+  currentEditUserId = null;
+  currentEditOpId = null;
+};
+
+window.confirmEdit = async function() {
+  if (!tradingDb || !currentEditUserId || !currentEditOpId) return;
+
+  const updates = {
+    currentPrice: parseFloat(document.getElementById('editCurrentPrice').value),
+    entryPrice: parseFloat(document.getElementById('editEntryPrice').value),
+    stopLoss: parseFloat(document.getElementById('editStopLoss').value),
+    takeProfit: parseFloat(document.getElementById('editTakeProfit').value),
+    leverage: parseInt(document.getElementById('editLeverage').value)
+  };
+
+  // Recalcular P/L
+  const op = operations[currentEditUserId][currentEditOpId];
+  let pnl;
+  if (op.side === 'buy') {
+    pnl = (updates.currentPrice - updates.entryPrice) * op.size;
+  } else {
+    pnl = (updates.entryPrice - updates.currentPrice) * op.size;
+  }
+  updates.pnl = pnl;
+
+  try {
+    await update(ref(tradingDb, `openOperations/${currentEditUserId}/${currentEditOpId}`), updates);
+    alert('✅ Operación actualizada');
+    closeEditModal();
+  } catch (error) {
+    console.error('Error actualizando operación:', error);
+    alert('❌ Error al actualizar. Verifica la consola.');
+  }
+};
+
+window.closeOperation = async function(userId, opId) {
+  if (!confirm('¿Cerrar esta operación manualmente?')) return;
+  if (!tradingDb) return;
+
+  try {
+    const op = operations[userId]?.[opId];
+    if (!op) {
+      alert('Operación no encontrada');
+      return;
+    }
+
+    // Calcular P/L final
+    let pnl;
+    if (op.side === 'buy') {
+      pnl = (op.currentPrice - op.entryPrice) * op.size;
+    } else {
+      pnl = (op.entryPrice - op.currentPrice) * op.size;
+    }
+
+    const closeFee = (op.currentPrice * op.size) * 0.0006;
+    const netProfit = pnl - (op.openFee || 0) - closeFee;
+
+    // Guardar en operaciones cerradas
+    await update(ref(tradingDb, `closedOperations/${userId}/${opId}`), {
+      ...op,
+      closePrice: op.currentPrice,
+      grossProfit: pnl,
+      closeFee,
+      netProfit,
+      closeTime: Date.now(),
+      closeReason: 'ADMIN_CLOSE'
+    });
+
+    // Eliminar de operaciones abiertas
+    await remove(ref(tradingDb, `openOperations/${userId}/${opId}`));
+
+    alert(`✅ Operación cerrada\nP/L: ${formatCurrency(netProfit)}`);
+  } catch (error) {
+    console.error('Error cerrando operación:', error);
+    alert('❌ Error al cerrar. Verifica la consola.');
+  }
+};
+
+window.liquidateOperation = async function(userId, opId) {
+  if (!confirm('⚠️ ¿LIQUIDAR esta operación? El usuario perderá todo el margen.')) return;
+  if (!tradingDb) return;
+
+  try {
+    const op = operations[userId]?.[opId];
+    if (!op) return;
+
+    // Guardar como liquidada
+    await update(ref(tradingDb, `closedOperations/${userId}/${opId}`), {
+      ...op,
+      closePrice: op.liquidationPrice,
+      grossProfit: -(op.amount),
+      netProfit: -(op.amount),
+      closeFee: 0,
+      closeTime: Date.now(),
+      closeReason: 'ADMIN_LIQUIDATION'
+    });
+
+    // Eliminar de abiertas
+    await remove(ref(tradingDb, `openOperations/${userId}/${opId}`));
+
+    alert('💥 Operación LIQUIDADA');
+  } catch (error) {
+    console.error('Error liquidando:', error);
+    alert('❌ Error al liquidar');
+  }
+};
+
+function escapeHtml(str) {
+  if (!str && str !== 0) return '';
+  const div = document.createElement('div');
+  div.textContent = String(str);
+  return div.innerHTML;
+}
+
+// Modal click outside to close
+document.getElementById('editModal').addEventListener('click', (e) => {
+  if (e.target.id === 'editModal') closeEditModal();
+});
+
+// Inicializar
+loadTradingConfig();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,791 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Soporte — Panel Admin</title>
+
+<style>
+:root{
+  --bg:#0f172a;
+  --card:#1e293b;
+  --border:#334155;
+  --text:#f1f5f9;
+  --muted:#94a3b8;
+  --accent:#10b981;
+  --danger:#ef4444;
+  --warning:#f59e0b;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial;
+  font-size:14px;
+  box-sizing:border-box;
+}
+*,*:before,*:after{box-sizing:inherit;}
+html,body{
+  height:100%;
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+}
+.container{
+  max-width:1400px;
+  margin:0 auto;
+  padding:20px;
+}
+
+/* Header */
+.header{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:24px;
+  margin-bottom:24px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:16px;
+}
+.header h1{
+  margin:0;
+  font-size:28px;
+  font-weight:700;
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+.connection-status{
+  padding:8px 16px;
+  border-radius:20px;
+  font-size:12px;
+  font-weight:700;
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+}
+.status-connected{
+  background:rgba(16,185,129,0.2);
+  color:#10b981;
+  border:1px solid rgba(16,185,129,0.3);
+}
+.status-disconnected{
+  background:rgba(239,68,68,0.2);
+  color:#ef4444;
+  border:1px solid rgba(239,68,68,0.3);
+}
+.pulse{
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  background:currentColor;
+  animation:pulse 2s ease-in-out infinite;
+}
+@keyframes pulse{
+  0%,100%{opacity:1;}
+  50%{opacity:0.5;}
+}
+
+/* Stats */
+.stats{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));
+  gap:16px;
+  margin-bottom:24px;
+}
+.stat-card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:20px;
+  transition:transform 0.2s;
+}
+.stat-card:hover{
+  transform:translateY(-2px);
+}
+.stat-label{
+  font-size:12px;
+  color:var(--muted);
+  text-transform:uppercase;
+  letter-spacing:0.5px;
+  margin-bottom:8px;
+}
+.stat-value{
+  font-size:32px;
+  font-weight:700;
+  color:var(--accent);
+}
+.stat-unread{color:var(--danger);}
+.stat-files{color:#0ea5e9;}
+
+/* Tabs */
+.tabs{
+  display:flex;
+  gap:8px;
+  margin-bottom:24px;
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:8px;
+  overflow-x:auto;
+}
+.tab{
+  flex:1;
+  min-width:120px;
+  padding:12px 20px;
+  border:none;
+  background:transparent;
+  color:var(--muted);
+  border-radius:8px;
+  cursor:pointer;
+  font-weight:600;
+  transition:all 0.2s;
+  white-space:nowrap;
+}
+.tab:hover{
+  background:rgba(255,255,255,0.05);
+}
+.tab.active{
+  background:var(--accent);
+  color:#fff;
+}
+
+/* Messages Grid */
+.messages-container{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:20px;
+}
+.messages-grid{
+  display:grid;
+  gap:16px;
+}
+.message-card{
+  background:rgba(255,255,255,0.02);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:20px;
+  transition:all 0.2s;
+}
+.message-card:hover{
+  background:rgba(255,255,255,0.05);
+  transform:translateY(-2px);
+  box-shadow:0 8px 24px rgba(0,0,0,0.3);
+}
+.message-card.unread{
+  background:rgba(16,185,129,0.1);
+  border-color:rgba(16,185,129,0.3);
+}
+.message-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  margin-bottom:16px;
+  gap:12px;
+}
+.message-user-info{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  flex:1;
+}
+.user-avatar{
+  width:48px;
+  height:48px;
+  border-radius:50%;
+  border:2px solid var(--accent);
+  object-fit:cover;
+}
+.user-details{
+  flex:1;
+}
+.user-name{
+  font-weight:700;
+  font-size:16px;
+  margin-bottom:4px;
+}
+.user-id{
+  font-size:12px;
+  color:var(--muted);
+  font-family:monospace;
+}
+.message-meta{
+  text-align:right;
+}
+.message-time{
+  font-size:13px;
+  color:var(--muted);
+  margin-bottom:8px;
+}
+.status-badge{
+  padding:6px 12px;
+  border-radius:20px;
+  font-size:11px;
+  font-weight:700;
+  text-transform:uppercase;
+  display:inline-block;
+}
+.badge-unread{
+  background:rgba(239,68,68,0.2);
+  color:#ef4444;
+  border:1px solid rgba(239,68,68,0.3);
+}
+.badge-read{
+  background:rgba(16,185,129,0.2);
+  color:#10b981;
+  border:1px solid rgba(16,185,129,0.3);
+}
+.message-text{
+  margin:16px 0;
+  color:var(--text);
+  line-height:1.6;
+  font-size:15px;
+}
+.message-file{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:12px 16px;
+  background:rgba(14,165,233,0.1);
+  border:1px solid rgba(14,165,233,0.3);
+  border-radius:8px;
+  margin-top:12px;
+  text-decoration:none;
+  color:#0ea5e9;
+  font-weight:600;
+  transition:all 0.2s;
+  cursor:pointer;
+}
+.message-file:hover{
+  background:rgba(14,165,233,0.2);
+  transform:translateX(4px);
+}
+.file-icon{
+  width:24px;
+  height:24px;
+}
+.message-image{
+  max-width:300px;
+  border-radius:8px;
+  cursor:pointer;
+  margin-top:12px;
+}
+.actions{
+  display:flex;
+  gap:10px;
+  margin-top:16px;
+  padding-top:16px;
+  border-top:1px solid var(--border);
+  flex-wrap:wrap;
+}
+.btn{
+  flex:1;
+  min-width:120px;
+  padding:10px 16px;
+  border:none;
+  border-radius:8px;
+  font-weight:700;
+  cursor:pointer;
+  transition:all 0.2s;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  font-size:13px;
+}
+.btn:hover{
+  transform:translateY(-1px);
+  box-shadow:0 4px 12px rgba(0,0,0,0.3);
+}
+.btn-mark-read{
+  background:var(--accent);
+  color:#fff;
+}
+.btn-mark-read:hover{
+  background:#059669;
+}
+.btn-reply{
+  background:#0ea5e9;
+  color:#fff;
+}
+.btn-reply:hover{
+  background:#0284c7;
+}
+.btn-delete{
+  background:var(--danger);
+  color:#fff;
+}
+.btn-delete:hover{
+  background:#dc2626;
+}
+.empty-state{
+  text-align:center;
+  padding:60px 20px;
+  color:var(--muted);
+}
+.empty-state svg{
+  margin:0 auto 20px;
+  opacity:0.5;
+}
+
+/* Modal */
+.modal{
+  display:none;
+  position:fixed;
+  top:0;
+  left:0;
+  right:0;
+  bottom:0;
+  background:rgba(0,0,0,0.8);
+  z-index:1000;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+}
+.modal.active{
+  display:flex;
+}
+.modal-content{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:24px;
+  max-width:500px;
+  width:100%;
+  max-height:80vh;
+  overflow-y:auto;
+}
+.modal-content h3{
+  margin:0 0 20px 0;
+  font-size:20px;
+}
+.form-group{
+  margin-bottom:16px;
+}
+.form-group label{
+  display:block;
+  margin-bottom:8px;
+  color:var(--muted);
+  font-size:13px;
+  font-weight:600;
+}
+.form-group input,
+.form-group textarea{
+  width:100%;
+  padding:12px;
+  border-radius:8px;
+  border:1px solid var(--border);
+  background:rgba(255,255,255,0.05);
+  color:var(--text);
+  font-size:14px;
+  font-family:inherit;
+}
+.form-group textarea{
+  min-height:120px;
+  resize:vertical;
+}
+.modal-actions{
+  display:flex;
+  gap:12px;
+  margin-top:20px;
+}
+.modal-actions .btn{
+  flex:1;
+}
+
+/* Responsive */
+@media (max-width:768px){
+  .container{padding:12px;}
+  .header h1{font-size:22px;}
+  .stats{grid-template-columns:repeat(2, 1fr);}
+  .stat-value{font-size:24px;}
+  .message-header{flex-direction:column;align-items:flex-start;}
+  .message-meta{text-align:left;}
+  .actions{flex-direction:column;}
+  .btn{width:100%;}
+  .message-image{max-width:100%;}
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Header -->
+  <div class="header">
+    <div>
+      <h1>
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+        </svg>
+        Mensajes de Soporte
+      </h1>
+    </div>
+    <div>
+      <div class="connection-status" id="connectionStatus">
+        <span class="pulse"></span>
+        Conectando...
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-label">Total Mensajes</div>
+      <div class="stat-value" id="totalMessages">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">No Leídos</div>
+      <div class="stat-value stat-unread" id="unreadMessages">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Con Archivos</div>
+      <div class="stat-value stat-files" id="withFiles">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Hoy</div>
+      <div class="stat-value" id="todayMessages" style="color:#fbbf24;">0</div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" data-filter="all">Todos</button>
+    <button class="tab" data-filter="unread">No Leídos</button>
+    <button class="tab" data-filter="read">Leídos</button>
+    <button class="tab" data-filter="withFiles">Con Archivos</button>
+  </div>
+
+  <!-- Messages -->
+  <div class="messages-container">
+    <div class="messages-grid" id="messagesGrid">
+      <div class="empty-state">
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+        </svg>
+        <p>Cargando mensajes...</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Responder -->
+<div class="modal" id="replyModal">
+  <div class="modal-content">
+    <h3>Responder Mensaje</h3>
+    <div class="form-group">
+      <label>Usuario</label>
+      <input type="text" id="replyUserId" readonly>
+    </div>
+    <div class="form-group">
+      <label>Mensaje Original</label>
+      <textarea id="replyOriginalMessage" readonly></textarea>
+    </div>
+    <div class="form-group">
+      <label>Tu Respuesta (se enviará por email)</label>
+      <textarea id="replyMessage" placeholder="Escribe tu respuesta..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-reply" onclick="sendReply()">Enviar Respuesta</button>
+      <button class="btn btn-delete" onclick="closeModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+import { getDatabase, ref, onValue, update, remove } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+
+// FIREBASE CONFIG
+const firebaseConfig = {
+  apiKey: "AIzaSyCno4j9OhpTAdG43cH4M5bFkawhM-ZZsb0",
+  authDomain: "panel-admin-d6837.firebaseapp.com",
+  databaseURL: "https://panel-admin-d6837-default-rtdb.firebaseio.com",
+  projectId: "panel-admin-d6837",
+  storageBucket: "panel-admin-d6837.firebasestorage.app",
+  messagingSenderId: "106133518140",
+  appId: "1:106133518140:web:04bf6780b2e21a47d99039"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+// Variables globales
+let allMessages = [];
+let currentFilter = 'all';
+let currentReplyKey = null;
+
+// Escuchar mensajes en tiempo real
+onValue(ref(db, 'support_messages'), (snapshot) => {
+  allMessages = [];
+  snapshot.forEach((child) => {
+    allMessages.push({
+      key: child.key,
+      ...child.val()
+    });
+  });
+  
+  allMessages.sort((a, b) => b.timestamp - a.timestamp);
+  updateStats();
+  displayMessages();
+  updateConnectionStatus(true);
+}, (error) => {
+  console.error('Error cargando mensajes:', error);
+  updateConnectionStatus(false);
+});
+
+// Actualizar estadísticas
+function updateStats() {
+  const today = new Date().setHours(0, 0, 0, 0);
+  const total = allMessages.length;
+  const unread = allMessages.filter(m => m.status === 'unread').length;
+  const withFiles = allMessages.filter(m => m.fileData || m.fileUrl).length;
+  const todayCount = allMessages.filter(m => new Date(m.timestamp).setHours(0, 0, 0, 0) === today).length;
+  
+  document.getElementById('totalMessages').textContent = total;
+  document.getElementById('unreadMessages').textContent = unread;
+  document.getElementById('withFiles').textContent = withFiles;
+  document.getElementById('todayMessages').textContent = todayCount;
+}
+
+// Mostrar mensajes
+function displayMessages() {
+  let filtered = allMessages;
+  
+  if(currentFilter === 'unread') {
+    filtered = allMessages.filter(m => m.status === 'unread');
+  } else if(currentFilter === 'read') {
+    filtered = allMessages.filter(m => m.status === 'read');
+  } else if(currentFilter === 'withFiles') {
+    filtered = allMessages.filter(m => m.fileData || m.fileUrl);
+  }
+  
+  const container = document.getElementById('messagesGrid');
+  
+  if(filtered.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+        </svg>
+        <p>No hay mensajes para mostrar</p>
+      </div>
+    `;
+    return;
+  }
+  
+  container.innerHTML = filtered.map(msg => {
+    const userName = getUserLabel(msg.userId);
+    const avatar = getUserAvatar(msg.userId);
+    const isUnread = msg.status === 'unread';
+    const hasFile = msg.fileData || msg.fileUrl;
+    
+    // Determinar tipo de archivo
+    let fileDisplay = '';
+    if(hasFile) {
+      const fileSource = msg.fileData || msg.fileUrl;
+      const isImage = msg.fileType && msg.fileType.startsWith('image/');
+      
+      if(isImage) {
+        fileDisplay = `
+          <div style="margin-top:12px;">
+            <img src="${fileSource}" 
+                 alt="${esc(msg.fileName || 'Imagen')}" 
+                 class="message-image"
+                 onclick="window.open('${fileSource}', '_blank')">
+          </div>
+        `;
+      } else {
+        fileDisplay = `
+          <a href="${fileSource}" download="${msg.fileName || 'archivo'}" class="message-file">
+            <svg class="file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+              <polyline points="13 2 13 9 20 9"></polyline>
+            </svg>
+            📄 ${esc(msg.fileName || 'Archivo adjunto')}
+          </a>
+        `;
+      }
+    }
+    
+    return `
+      <div class="message-card ${isUnread ? 'unread' : ''}" data-key="${msg.key}">
+        <div class="message-header">
+          <div class="message-user-info">
+            <img src="${avatar}" alt="${userName}" class="user-avatar">
+            <div class="user-details">
+              <div class="user-name">${esc(userName)}</div>
+              <div class="user-id">ID: ${esc(msg.userId)}</div>
+            </div>
+          </div>
+          <div class="message-meta">
+            <div class="message-time">${formatDate(new Date(msg.timestamp))}</div>
+            <span class="status-badge ${isUnread ? 'badge-unread' : 'badge-read'}">
+              ${isUnread ? '🔴 NUEVO' : '✅ LEÍDO'}
+            </span>
+          </div>
+        </div>
+        
+        ${msg.text ? `<div class="message-text">${esc(msg.text)}</div>` : ''}
+        ${fileDisplay}
+        
+        <div class="actions">
+          ${isUnread ? `
+            <button class="btn btn-mark-read" onclick="markAsRead('${msg.key}')">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              Marcar Leído
+            </button>
+          ` : ''}
+          <button class="btn btn-reply" onclick="openReplyModal('${msg.key}')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+            Responder
+          </button>
+          <button class="btn btn-delete" onclick="deleteMessage('${msg.key}')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+            Eliminar
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// Marcar como leído
+window.markAsRead = async function(key) {
+  try {
+    await update(ref(db, `support_messages/${key}`), {
+      status: 'read',
+      readAt: new Date().toISOString()
+    });
+  } catch(error) {
+    console.error('Error:', error);
+    alert('Error al marcar como leído');
+  }
+};
+
+// Abrir modal responder
+window.openReplyModal = function(key) {
+  const msg = allMessages.find(m => m.key === key);
+  if(!msg) return;
+  
+  currentReplyKey = key;
+  document.getElementById('replyUserId').value = getUserLabel(msg.userId);
+  document.getElementById('replyOriginalMessage').value = msg.text || '(Sin texto)';
+  document.getElementById('replyMessage').value = '';
+  document.getElementById('replyModal').classList.add('active');
+};
+
+// Enviar respuesta
+window.sendReply = async function() {
+  const replyText = document.getElementById('replyMessage').value.trim();
+  if(!replyText) {
+    alert('Escribe una respuesta');
+    return;
+  }
+  
+  if(!currentReplyKey) return;
+  
+  try {
+    await update(ref(db, `support_messages/${currentReplyKey}`), {
+      adminReply: replyText,
+      repliedAt: new Date().toISOString(),
+      status: 'read'
+    });
+    
+    alert('✅ Respuesta guardada. Envía el correo manualmente al usuario.');
+    closeModal();
+  } catch(error) {
+    console.error('Error:', error);
+    alert('Error al enviar respuesta');
+  }
+};
+
+// Cerrar modal
+window.closeModal = function() {
+  document.getElementById('replyModal').classList.remove('active');
+  currentReplyKey = null;
+};
+
+// Eliminar mensaje
+window.deleteMessage = async function(key) {
+  if(!confirm('¿Eliminar este mensaje permanentemente?')) return;
+  
+  try {
+    await remove(ref(db, `support_messages/${key}`));
+    alert('Mensaje eliminado');
+  } catch(error) {
+    console.error('Error:', error);
+    alert('Error al eliminar mensaje');
+  }
+};
+
+// Filtros
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', function() {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    this.classList.add('active');
+    currentFilter = this.dataset.filter;
+    displayMessages();
+  });
+});
+
+// Cerrar modal al hacer click fuera
+document.getElementById('replyModal').addEventListener('click', (e) => {
+  if(e.target.id === 'replyModal') closeModal();
+});
+
+// Utilidades
+function updateConnectionStatus(connected) {
+  const status = document.getElementById('connectionStatus');
+  if(connected) {
+    status.className = 'connection-status status-connected';
+    status.innerHTML = '<span class="pulse"></span>Conectado';
+  } else {
+    status.className = 'connection-status status-disconnected';
+    status.innerHTML = '<span class="pulse"></span>Desconectado';
+  }
+}
+
+function getUserLabel(userId) {
+  return userId || 'Usuario Anónimo';
+}
+
+function getUserAvatar(userId) {
+  const seed = encodeURIComponent(userId || 'guest');
+  return `https://api.dicebear.com/6.x/avataaars/svg?seed=${seed}&size=128&backgroundColor=b6e3f4`;
+}
+
+function formatDate(date) {
+  const now = new Date();
+  const diff = now - date;
+  
+  if(diff < 60000) return 'Hace un momento';
+  if(diff < 3600000) return `Hace ${Math.floor(diff/60000)} min`;
+  if(diff < 86400000) return `Hace ${Math.floor(diff/3600000)}h`;
+  
+  return date.toLocaleDateString('es-ES', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
+function esc(str) {
+  if(!str && str !== 0) return '';
+  const div = document.createElement('div');
+  div.textContent = String(str);
+  return div.innerHTML;
+}
+</script>
+
+</body>
+</html>

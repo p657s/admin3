@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Admin - Solicitudes Bank Transfer</title>
+<style>
+  :root{
+    --bg:#f5f7f8; --card:#fff; --border:#e6eaeb; --accent:#2f855a; --muted:#6b7280; --text:#1f2937;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);padding:20px}
+  .container{max-width:1200px;margin:0 auto}
+  .back-button{display:inline-flex;align-items:center;gap:8px;padding:10px 16px;background:var(--card);border:1px solid var(--border);border-radius:8px;text-decoration:none;color:var(--muted);margin-bottom:16px}
+  h1{display:flex;align-items:center;gap:12px}
+  .stats{display:flex;gap:12px;margin:16px 0;flex-wrap:wrap}
+  .stat{background:var(--card);padding:12px;border-radius:8px;border:1px solid var(--border);min-width:140px}
+  .filters{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+  .filter{padding:8px 12px;border-radius:8px;background:var(--card);border:1px solid var(--border);cursor:pointer}
+  .filter.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,0.04)}
+  .row{display:flex;justify-content:space-between;align-items:center}
+  .country{display:flex;align-items:center;gap:10px;font-weight:600}
+  .flag{width:36px;height:24px;object-fit:cover;border-radius:4px}
+  .info{margin-top:12px;background:#f9fafb;padding:12px;border-radius:8px}
+  .info .line{display:flex;justify-content:space-between;margin-bottom:8px;font-size:14px}
+  .amount{font-size:20px;color:var(--accent);font-weight:700}
+  .currency-badge{font-size:13px;color:var(--muted);font-weight:800;margin-left:8px}
+  .type{display:inline-block;padding:4px 8px;border-radius:8px;font-weight:700;font-size:12px}
+  .type.cuenta{background:#dbeafe;color:#1e40af}
+  .type.qr{background:#e0e7ff;color:#4338ca}
+  .timestamp{font-size:12px;color:var(--muted);margin-top:8px}
+  .admin-form{margin-top:12px;border-top:2px solid var(--border);padding-top:12px}
+  .form-row{margin-bottom:10px}
+  label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px;font-weight:600}
+  input[type="text"], textarea{width:100%;padding:10px;border-radius:8px;border:1px solid #d1d5db;font-size:14px}
+  textarea{min-height:80px;resize:vertical;font-family:inherit}
+  input[type="file"]{padding:6px}
+  .btn{display:inline-block;padding:10px 14px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-weight:700;cursor:pointer}
+  .btn.secondary{background:#0ea5a3}
+  .success{padding:8px;background:#d1fae5;color:#065f46;border-radius:8px;margin-top:8px;display:none}
+  .success.show{display:block}
+  .badge.pending{background:#fef3c7;color:#92400e;padding:4px 10px;border-radius:999px;font-weight:700}
+  .badge.sent{background:#d1fae5;color:#065f46;padding:4px 10px;border-radius:999px;font-weight:700}
+  .small{font-size:13px;color:var(--muted)}
+  img.qr{max-width:180px;width:100%;height:auto;border-radius:8px;border:2px solid #e0f2fe;margin-top:8px}
+  .user-proof{max-width:160px;border-radius:8px;border:1px solid var(--border);display:block;margin-top:8px}
+  .link{color:#2563eb;text-decoration:underline;cursor:pointer}
+  @media (max-width:640px){ .grid{grid-template-columns:1fr} }
+  .floating-retiro-btn{
+  position:fixed;
+  bottom:20px;
+  right:20px;
+  z-index:9999;
+  padding:12px 18px;
+  border-radius:999px;
+  background:var(--accent);
+  color:#fff;
+  font-weight:800;
+  font-size:14px;
+  border:none;
+  cursor:pointer;
+  box-shadow:0 8px 20px rgba(0,0,0,0.15);
+  transition:all .2s ease;
+}
+.floating-retiro-btn:hover{
+  transform:translateY(-2px);
+  box-shadow:0 12px 24px rgba(0,0,0,0.2);
+}
+
+@media(max-width:640px){
+  .floating-retiro-btn{
+    bottom:14px;
+    right:14px;
+    padding:10px 16px;
+    font-size:13px;
+  }
+}
+
+</style>
+</head>
+<body>
+<div class="container">
+  <a class="back-button" href="index.html">← Volver al Panel</a>
+  <div class="header">
+    <h1>Solicitudes Bank Transfer — Admin</h1>
+  </div>
+
+  <div class="stats" id="statsBar">
+    <div class="stat"><div class="small">Total Solicitudes</div><div id="total" style="font-weight:800;font-size:20px">0</div></div>
+    <div class="stat"><div class="small">Pendientes</div><div id="pend" style="font-weight:800;font-size:20px">0</div></div>
+    <div class="stat"><div class="small">Enviadas</div><div id="sent" style="font-weight:800;font-size:20px">0</div></div>
+  </div>
+
+  <div class="filters">
+    <button class="filter active" data-filter="all">Todas</button>
+    <button class="filter" data-filter="pending">Pendientes</button>
+    <button class="filter" data-filter="sent">Enviadas</button>
+  </div>
+
+  <div class="grid" id="requestsGrid">
+    <!-- cards injected aquí -->
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+import { getDatabase, ref, onValue, update } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+
+const REQUESTS_FIREBASE_CONFIG = {
+  apiKey: "AIzaSyCxWMvSgI9EMKqFZArjCDFmZo6H44RVfg8",
+  authDomain: "solicitudes-26a47.firebaseapp.com",
+  databaseURL: "https://solicitudes-26a47-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "solicitudes-26a47"
+};
+
+let app, db;
+try {
+  app = initializeApp(REQUESTS_FIREBASE_CONFIG);
+  db = getDatabase(app);
+  console.log('Firebase requests init');
+} catch(e){
+  console.error('Firebase init error', e);
+  alert('Error al inicializar Firebase en admin.');
+}
+
+let allRequests = {};
+let currentFilter = 'all';
+
+const requestsGrid = document.getElementById('requestsGrid');
+const totalEl = document.getElementById('total');
+const pendEl = document.getElementById('pend');
+const sentEl = document.getElementById('sent');
+
+function updateStats() {
+  const vals = Object.values(allRequests);
+  totalEl.textContent = vals.length;
+  pendEl.textContent = vals.filter(x=>x.status==='pending').length;
+  sentEl.textContent = vals.filter(x=>x.status==='sent').length;
+}
+
+function sanitize(s){
+  if(!s && s!==0) return '';
+  return String(s).replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function createCard(key, data){
+  const date = new Date(data.timestamp || Date.now());
+  const formatted = date.toLocaleString('es-ES', { day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit' });
+
+  const statusBadge = data.status==='pending' ? '<span class="badge pending">Pendiente</span>' : '<span class="badge sent">Enviada</span>';
+  const typeBadge = data.type==='cuenta' ? '<span class="type cuenta">Cuenta</span>' : '<span class="type qr">QR</span>';
+
+  // user proof (if any)
+  let userProofHtml = '';
+  if(data.userProofImageBase64){
+    // mostrar imagen (o pdf) - si es data URL de imagen, la mostramos; si es PDF, dejamos link de descarga
+    if(/^data:(image\/(png|jpg|jpeg|gif|webp|svg\+xml));base64,/i.test(data.userProofImageBase64) || data.userProofName?.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i)){
+      userProofHtml = `<a href="${data.userProofImageBase64}" target="_blank"><img class="user-proof" src="${data.userProofImageBase64}" alt="Comprobante ${sanitize(data.userProofName||'')}" /></a>
+      <div class="small">Nombre: ${sanitize(data.userProofName||'—')}</div>`;
+    } else {
+      // probablemente PDF dataURL
+      userProofHtml = `<div class="small">Comprobante: <a class="link" href="${data.userProofImageBase64}" target="_blank">Ver / Descargar</a></div>`;
+    }
+  }
+
+  // admin response area (for sent requests)
+  let sentHtml = '';
+  if(data.status === 'sent'){
+    let adminMsg = data.adminMessage ? `<div class="small" style="font-weight:700;color:#0369a1;margin-bottom:8px">Mensaje admin:</div><div class="small" style="background:#fff;padding:8px;border-radius:6px;border:1px solid #e6f2ff;margin-bottom:8px">${sanitize(data.adminMessage)}</div>` : '';
+    let adminData = '';
+    if(data.adminImageBase64){
+      adminData = `<img class="qr" src="${data.adminImageBase64}" alt="QR enviado" />`;
+    } else if(data.adminData && /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp|svg)$/i.test(data.adminData)){
+      adminData = `<img class="qr" src="${data.adminData}" alt="QR enviado" />`;
+    } else if(data.adminData){
+      adminData = `<div class="small" style="background:#fff;padding:8px;border-radius:6px;border:1px solid #e6f2fe">${sanitize(data.adminData)}</div>`;
+    }
+    sentHtml = `<div style="margin-top:12px">${adminMsg}${adminData}</div>`;
+  }
+
+  // only show upload form when pending
+  const adminFormHtml = data.status === 'pending' ? `
+    <div class="admin-form" data-key="${key}">
+      <div class="form-row">
+        <label>Mensaje al usuario (opcional)</label>
+        <input type="text" id="msg-${key}" placeholder="Ej: Realiza la transferencia a esta cuenta">
+      </div>
+      <div class="form-row">
+        <label>Datos bancarios (texto opcional)</label>
+        <textarea id="data-${key}" placeholder="Banco: ...\nTitular: ..."></textarea>
+      </div>
+      <div class="form-row">
+        <label>Subir imagen QR a enviar (archivo)</label>
+        <input type="file" id="file-${key}" accept="image/*" />
+        <div class="small" style="margin-top:6px">Puedes subir JPG/PNG/WebP. La imagen se enviará al usuario (no es necesario subir link).</div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="btn" id="send-${key}">Enviar al Usuario</button>
+        <button class="btn secondary" id="preview-${key}">Vista previa</button>
+      </div>
+      <div class="success" id="ok-${key}">✅ Respuesta enviada al usuario correctamente</div>
+    </div>
+  ` : '';
+
+  // currency display (show currency code next to amount)
+  const currencyToShow = sanitize(data.currency || 'USD');
+
+  // build card html
+  const html = `
+    <div class="card" id="card-${key}">
+      <div class="row">
+        <div class="country">
+          <img class="flag" src="${sanitize(data.countryFlagUrl||'https://flagcdn.com/w40/es.png')}" alt="${sanitize(data.countryName||'')}" />
+          <div>${sanitize(data.countryName||'—')}</div>
+        </div>
+        ${statusBadge}
+      </div>
+
+      <div class="info">
+        <div class="line"><div class="small">Monto</div><div class="amount">${sanitize(String(data.amount||'0'))}<span class="currency-badge">${currencyToShow}</span></div></div>
+        <div class="line"><div class="small">Tipo</div><div>${typeBadge}</div></div>
+        <div class="line"><div class="small">Usuario</div><div style="font-weight:700">${sanitize(data.userId||'—')}</div></div>
+        <div class="line"><div class="small">ID Solicitud</div><div style="font-family:monospace;font-size:12px">${sanitize(data.id||key)}</div></div>
+        ${userProofHtml}
+      </div>
+
+      <div class="timestamp">📅 ${formatted}</div>
+
+      ${data.status === 'sent' ? sentHtml : adminFormHtml}
+    </div>
+  `;
+  return html;
+}
+
+// read file -> dataURL helper (promisified)
+function fileToDataURL(file){
+  return new Promise((resolve,reject)=>{
+    const r = new FileReader();
+    r.onload = ()=> resolve(r.result);
+    r.onerror = err => reject(err);
+    r.readAsDataURL(file);
+  });
+}
+
+// render all requests
+function renderAll() {
+  const entries = Object.entries(allRequests)
+    .map(([k,v]) => ({ key:k, ...v }))
+    .sort((a,b)=> new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+
+  const filtered = entries.filter(r => {
+    if(currentFilter==='all') return true;
+    return r.status === currentFilter;
+  });
+
+  if(filtered.length === 0){
+    requestsGrid.innerHTML = `<div style="grid-column:1/-1;background:var(--card);border:1px dashed var(--border);padding:40px;border-radius:12px;text-align:center;color:var(--muted)">No hay solicitudes</div>`;
+    return;
+  }
+
+  requestsGrid.innerHTML = filtered.map(r => createCard(r.key, r)).join('');
+
+  // attach listeners for pending send buttons
+  filtered.forEach(r => {
+    if(r.status === 'pending'){
+      const sendBtn = document.getElementById(`send-${r.key}`);
+      const previewBtn = document.getElementById(`preview-${r.key}`);
+      if(sendBtn){
+        sendBtn.addEventListener('click', async () => {
+          sendBtn.disabled = true;
+          sendBtn.textContent = 'Enviando...';
+          try {
+            const msg = document.getElementById(`msg-${r.key}`).value.trim();
+            const dataText = document.getElementById(`data-${r.key}`).value.trim();
+            const fileInput = document.getElementById(`file-${r.key}`);
+            let adminImageBase64 = null;
+            if(fileInput && fileInput.files && fileInput.files[0]){
+              try {
+                adminImageBase64 = await fileToDataURL(fileInput.files[0]);
+              } catch(e){
+                console.warn('Error leyendo archivo admin', e);
+              }
+            }
+
+            const reqRef = ref(db, `bank_requests/${r.key}`);
+            const updatePayload = {
+              status: 'sent',
+              adminMessage: msg || null,
+              adminData: dataText || null,
+              adminImageBase64: adminImageBase64 || null,
+              sentAt: new Date().toISOString()
+            };
+
+            await update(reqRef, updatePayload);
+            document.getElementById(`ok-${r.key}`).classList.add('show');
+            setTimeout(()=> document.getElementById(`ok-${r.key}`).classList.remove('show'), 3000);
+            console.log('Respuesta enviada para', r.key);
+          } catch(err){
+            console.error('Error enviando respuesta', err);
+            alert('Error al enviar respuesta: ' + (err.message||String(err)));
+          } finally {
+            sendBtn.disabled = false;
+            sendBtn.textContent = 'Enviar al Usuario';
+          }
+        });
+      }
+
+      if(previewBtn){
+        previewBtn.addEventListener('click', async () => {
+          const fileInput = document.getElementById(`file-${r.key}`);
+          const dataText = document.getElementById(`data-${r.key}`).value.trim();
+          if(fileInput && fileInput.files && fileInput.files[0]){
+            try {
+              const dataUrl = await fileToDataURL(fileInput.files[0]);
+              // abrir en nueva pestaña para preview
+              const w = window.open('');
+              w.document.write(`<img src="${dataUrl}" style="max-width:100%;height:auto" />`);
+            } catch(e){
+              alert('No se pudo obtener vista previa: ' + e.message);
+            }
+          } else if(dataText){
+            alert('Datos a enviar:\n\n' + dataText);
+          } else {
+            alert('No hay archivo ni datos para previsualizar');
+          }
+        });
+      }
+    }
+  });
+
+}
+
+// listen to DB
+const requestsRef = ref(db, 'bank_requests');
+onValue(requestsRef, (snap) => {
+  const data = snap.val() || {};
+  allRequests = data;
+  updateStats();
+  renderAll();
+});
+
+// filters
+document.querySelectorAll('.filter').forEach(btn=>{
+  btn.addEventListener('click', ()=> {
+    document.querySelectorAll('.filter').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    currentFilter = btn.dataset.filter;
+    renderAll();
+  });
+});
+
+</script>
+<a href="retiro.html" class="floating-retiro-btn">
+  Retiro
+</a>
+
+
+</body>
+</html>
