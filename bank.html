@@ -107,7 +107,7 @@
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-import { getDatabase, ref, onValue, update } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+import { getDatabase, ref, onValue, update, push, set } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
 
 const REQUESTS_FIREBASE_CONFIG = {
   apiKey: "AIzaSyCxWMvSgI9EMKqFZArjCDFmZo6H44RVfg8",
@@ -120,9 +120,9 @@ let app, db;
 try {
   app = initializeApp(REQUESTS_FIREBASE_CONFIG);
   db = getDatabase(app);
-  console.log('Firebase requests init');
+  console.log('✅ Firebase requests init');
 } catch(e){
-  console.error('Firebase init error', e);
+  console.error('❌ Firebase init error', e);
   alert('Error al inicializar Firebase en admin.');
 }
 
@@ -156,12 +156,10 @@ function createCard(key, data){
   // user proof (if any)
   let userProofHtml = '';
   if(data.userProofImageBase64){
-    // mostrar imagen (o pdf) - si es data URL de imagen, la mostramos; si es PDF, dejamos link de descarga
     if(/^data:(image\/(png|jpg|jpeg|gif|webp|svg\+xml));base64,/i.test(data.userProofImageBase64) || data.userProofName?.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i)){
       userProofHtml = `<a href="${data.userProofImageBase64}" target="_blank"><img class="user-proof" src="${data.userProofImageBase64}" alt="Comprobante ${sanitize(data.userProofName||'')}" /></a>
       <div class="small">Nombre: ${sanitize(data.userProofName||'—')}</div>`;
     } else {
-      // probablemente PDF dataURL
       userProofHtml = `<div class="small">Comprobante: <a class="link" href="${data.userProofImageBase64}" target="_blank">Ver / Descargar</a></div>`;
     }
   }
@@ -195,20 +193,17 @@ function createCard(key, data){
       <div class="form-row">
         <label>Subir imagen QR a enviar (archivo)</label>
         <input type="file" id="file-${key}" accept="image/*" />
-        <div class="small" style="margin-top:6px">Puedes subir JPG/PNG/WebP. La imagen se enviará al usuario (no es necesario subir link).</div>
+        <div class="small" style="margin-top:6px">Puedes subir JPG/PNG/WebP. La imagen se enviará al usuario.</div>
       </div>
       <div style="display:flex;gap:8px;margin-top:8px">
-        <button class="btn" id="send-${key}">Enviar al Usuario</button>
-        <button class="btn secondary" id="preview-${key}">Vista previa</button>
+        <button class="btn" id="send-${key}">📤 Enviar al Usuario</button>
+        <button class="btn secondary" id="preview-${key}">👁️ Vista previa</button>
       </div>
-      <div class="success" id="ok-${key}">✅ Respuesta enviada al usuario correctamente</div>
     </div>
   ` : '';
 
-  // currency display (show currency code next to amount)
   const currencyToShow = sanitize(data.currency || 'USD');
 
-  // build card html
   const html = `
     <div class="card" id="card-${key}">
       <div class="row">
@@ -235,7 +230,7 @@ function createCard(key, data){
   return html;
 }
 
-// read file -> dataURL helper (promisified)
+// read file -> dataURL helper
 function fileToDataURL(file){
   return new Promise((resolve,reject)=>{
     const r = new FileReader();
@@ -243,6 +238,37 @@ function fileToDataURL(file){
     r.onerror = err => reject(err);
     r.readAsDataURL(file);
   });
+}
+
+// 🔔 FUNCIÓN PARA CREAR NOTIFICACIÓN EN FIREBASE
+async function createNotificationForUser(userId, requestData, adminMessage, adminData, adminImageBase64) {
+  try {
+    const notifId = 'bank_' + Date.now();
+    const notifRef = ref(db, `notifications/${userId}/${notifId}`);
+    
+    await set(notifRef, {
+      id: notifId,
+      type: 'bank_transfer_response',
+      title: requestData.type === 'cuenta' ? '💳 Datos de cuenta enviados' : '💳 QR de pago enviado',
+      message: adminMessage || (requestData.type === 'cuenta'
+        ? 'El administrador te envió los datos bancarios para la transferencia.'
+        : 'El administrador te envió el código QR para realizar el pago.'),
+      bankRequestId: requestData.id || 'unknown',
+      amount: requestData.amount || null,
+      currency: requestData.currency || null,
+      adminData: adminData || null,
+      adminImageBase64: adminImageBase64 || null,
+      countryName: requestData.countryName || null,
+      createdAt: new Date().toISOString(),
+      read: false
+    });
+    
+    console.log('🔔 Notificación creada para usuario:', userId);
+    return true;
+  } catch(e) {
+    console.error('❌ Error creando notificación:', e);
+    return false;
+  }
 }
 
 // render all requests
@@ -268,23 +294,27 @@ function renderAll() {
     if(r.status === 'pending'){
       const sendBtn = document.getElementById(`send-${r.key}`);
       const previewBtn = document.getElementById(`preview-${r.key}`);
+      
       if(sendBtn){
         sendBtn.addEventListener('click', async () => {
           sendBtn.disabled = true;
-          sendBtn.textContent = 'Enviando...';
+          sendBtn.textContent = '⏳ Enviando...';
+          
           try {
             const msg = document.getElementById(`msg-${r.key}`).value.trim();
             const dataText = document.getElementById(`data-${r.key}`).value.trim();
             const fileInput = document.getElementById(`file-${r.key}`);
             let adminImageBase64 = null;
+            
             if(fileInput && fileInput.files && fileInput.files[0]){
               try {
                 adminImageBase64 = await fileToDataURL(fileInput.files[0]);
               } catch(e){
-                console.warn('Error leyendo archivo admin', e);
+                console.warn('⚠️ Error leyendo archivo admin', e);
               }
             }
 
+            // Actualizar solicitud
             const reqRef = ref(db, `bank_requests/${r.key}`);
             const updatePayload = {
               status: 'sent',
@@ -295,15 +325,20 @@ function renderAll() {
             };
 
             await update(reqRef, updatePayload);
-            document.getElementById(`ok-${r.key}`).classList.add('show');
-            setTimeout(()=> document.getElementById(`ok-${r.key}`).classList.remove('show'), 3000);
-            console.log('Respuesta enviada para', r.key);
+
+            // 🔔 CREAR NOTIFICACIÓN PARA EL USUARIO
+            const userId = r.userId || 'guest';
+            await createNotificationForUser(userId, r, msg, dataText, adminImageBase64);
+
+            alert('✅ Respuesta enviada correctamente.\n🔔 Notificación creada para el usuario.');
+            console.log('✅ Respuesta enviada para', r.key);
+            
           } catch(err){
-            console.error('Error enviando respuesta', err);
-            alert('Error al enviar respuesta: ' + (err.message||String(err)));
+            console.error('❌ Error enviando respuesta', err);
+            alert('❌ Error al enviar respuesta: ' + (err.message||String(err)));
           } finally {
             sendBtn.disabled = false;
-            sendBtn.textContent = 'Enviar al Usuario';
+            sendBtn.textContent = '📤 Enviar al Usuario';
           }
         });
       }
@@ -312,10 +347,10 @@ function renderAll() {
         previewBtn.addEventListener('click', async () => {
           const fileInput = document.getElementById(`file-${r.key}`);
           const dataText = document.getElementById(`data-${r.key}`).value.trim();
+          
           if(fileInput && fileInput.files && fileInput.files[0]){
             try {
               const dataUrl = await fileToDataURL(fileInput.files[0]);
-              // abrir en nueva pestaña para preview
               const w = window.open('');
               w.document.write(`<img src="${dataUrl}" style="max-width:100%;height:auto" />`);
             } catch(e){
@@ -330,7 +365,6 @@ function renderAll() {
       }
     }
   });
-
 }
 
 // listen to DB
@@ -353,10 +387,9 @@ document.querySelectorAll('.filter').forEach(btn=>{
 });
 
 </script>
-<a href="retiro.html" class="floating-retiro-btn">
-  Retiro
-</a>
-
+<a href="retiro.html" class="floating-retiro-btn">Retiro</a>
 
 </body>
 </html>
+
+
